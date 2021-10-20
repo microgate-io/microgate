@@ -1,0 +1,26 @@
+# global means debug log enabled for both microgate and the backend, for any request
+global_debug: true
+accesslog_enabled: true
+postgres_connect: postgres://postgres:pgtalk@localhost:5432/todo
+
+xconnect:
+  meta:
+  listen:
+    internal:
+      host: localhost
+      port: 9191
+    external:
+      host: localhost
+      port: 9292
+  connect:
+    backend:
+        host: localhost
+        port: 9090
+        
+    # outbound grpc services
+    UserService:
+      host: localhost
+      port: 8000
+      protocol: grpc
+      secure: false
+      api-key: test-user
