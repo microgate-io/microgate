@@ -54,11 +54,13 @@ func StartInternalProxyServer(config xconnect.Document) {
 
 	// db
 	// TODO: temp, check config
-	conn, err := pgx.Connect(context.Background(), config.FindString("postgres_connect"))
+	dsn := config.FindString("postgres_connect")
+	conn, err := pgx.Connect(context.Background(), dsn)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
 		os.Exit(1)
 	}
+	mlog.Infow(ctx, "connected to database", "dsn", dsn)
 	d := mdb.NewDatabaseServiceImpl(conn)
 	// TODO: end temp
 	apidb.RegisterDatabaseServiceServer(grpcServer, d)

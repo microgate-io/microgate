@@ -1,7 +1,7 @@
 # global means debug log enabled for both microgate and the backend, for any request
 global_debug: true
 accesslog_enabled: true
-postgres_connect: postgres://postgres:pgtalk@localhost:5432/todo
+postgres_connect: postgres://postgres:microgate@localhost:5432/todo
 
 xconnect:
   meta:
