@@ -2,11 +2,15 @@ package microgate
 
 import (
 	"context"
+	"log"
+	"net/http"
 
 	"github.com/danielvladco/go-proto-gql/pkg/generator"
 	"github.com/danielvladco/go-proto-gql/pkg/server"
 	"github.com/emicklei/xconnect"
 	mlog "github.com/microgate-io/microgate/v1/log"
+	"github.com/nautilus/gateway"
+	"github.com/nautilus/graphql"
 )
 
 const (
@@ -20,24 +24,39 @@ var (
 
 // StartExternalProxyServer listens to gRPC requests send from a gRPC client.
 func StartExternalProxyGraphQLServer(config xconnect.Document) {
+	ctx := context.Background()
 
 	caller, descs, _, err := server.NewReflectCaller([]string{"localhost:9090"})
 
-	mlog.Debugw(context.Background(), "NewReflectCaller", "caller", caller, "desc", descs, "err", err)
+	mlog.Debugw(ctx, "NewReflectCaller", "caller", caller, "desc", descs, "err", err)
 	for _, each := range descs {
-		mlog.Debugw(context.Background(), "descriptor", "name", each.GetName())
+		mlog.Debugw(ctx, "descriptor", "name", each.GetName())
 	}
 
 	gqlDesc, err := generator.NewSchemas(descs, optMergeSchemas, optGenServiceDescr, optEmptyGoRef)
-	mlog.Debugw(context.Background(), "NewSchemas", "gqlDesc", gqlDesc, "err", err)
+	mlog.Debugw(ctx, "NewSchemas", "gqlDesc", gqlDesc, "err", err)
 
-	/**
+	registry := generator.NewRegistry(gqlDesc)
+
+	queryFactory := gateway.QueryerFactory(func(ctx *gateway.PlanningContext, url string) graphql.Queryer {
+		return server.NewQueryer(registry, caller)
+	})
+
+	// ?????
+	sources := []*graphql.RemoteSchema{{URL: "url1"}}
+	sources[0].Schema = gqlDesc.AsGraphql()[0]
+
+	g, err := gateway.New(sources, gateway.WithQueryerFactory(&queryFactory))
+	if err != nil {
+		mlog.Fatalw(ctx, "new gateway failed", "err", err)
+	}
+
 	// start listener
 	mux := http.NewServeMux()
 	mux.HandleFunc("/query", g.GraphQLHandler)
 	if true {
 		mux.HandleFunc("/playground", g.PlaygroundHandler)
 	}
+	mlog.Infow(ctx, "external serving GraphQL", "addr", ":8080", "path", "/query", "play", "/playground")
 	log.Fatal(http.ListenAndServe(":8080", mux))
-	**/
 }

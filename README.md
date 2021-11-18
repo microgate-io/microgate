@@ -11,6 +11,12 @@ Implementation of microgate-api
 See https://github.com/microgate-io/microgate-demo/tree/main/todo/server
 
 
+### graphql
+
+To install the playground UI on MacOS with brew
+
+    brew install --cask graphql-playground
+
 ### inspired by
 
 - https://dapr.io/

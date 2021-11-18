@@ -12,6 +12,8 @@ require (
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v4 v4.13.0
 	github.com/microgate-io/microgate-lib-go v1.0.0
+	github.com/nautilus/gateway v0.2.0
+	github.com/nautilus/graphql v0.0.16 // indirect
 	github.com/vgough/grpc-proxy v0.0.0-20210913231538-71832b651269
 	go.opencensus.io v0.23.0
 	go.uber.org/zap v1.19.1
