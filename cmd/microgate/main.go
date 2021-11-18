@@ -26,6 +26,8 @@ func main() {
 	apilog.GlobalDebug = config.FindBool("global_debug")
 
 	go microgate.StartInternalProxyServer(config)
+	go microgate.StartExternalProxyGraphQLServer(config)
+
 	microgate.StartExternalProxyServer(config)
 }
 
