@@ -11,6 +11,7 @@ require (
 	github.com/jackc/pgtype v1.8.1
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/pgx/v4 v4.13.0
+	github.com/jhump/protoreflect v1.8.2 // indirect
 	github.com/microgate-io/microgate-lib-go v1.0.0
 	github.com/nautilus/gateway v0.2.0
 	github.com/nautilus/graphql v0.0.16 // indirect
