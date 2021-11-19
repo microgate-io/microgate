@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/danielvladco/go-proto-gql/pkg/generator"
 	"github.com/danielvladco/go-proto-gql/pkg/server"
@@ -28,12 +29,7 @@ var (
 func StartExternalProxyGraphQLServer(config xconnect.Document) {
 	ctx := context.Background()
 
-	caller, descs, _, err := server.NewReflectCaller([]string{"localhost:9090"})
-
-	mlog.Debugw(ctx, "NewReflectCaller", "caller", caller, "desc", descs, "err", err)
-	for _, each := range descs {
-		mlog.Debugw(ctx, "descriptor", "name", each.GetName(), "pkg", each.GetPackage())
-	}
+	caller, descs := waitForDescriptors("localhost:9090")
 
 	gqlDesc, err := generator.NewSchemas(rejectPackage(descs, myProtoPackage), optMergeSchemas, optGenServiceDescr, optEmptyGoRef)
 	mlog.Debugw(ctx, "NewSchemas", "gqlDesc", gqlDesc, "err", err)
@@ -61,6 +57,25 @@ func StartExternalProxyGraphQLServer(config xconnect.Document) {
 	}
 	mlog.Infow(ctx, "external serving GraphQL", "addr", ":8080", "path", "/query", "play", "/playground")
 	log.Fatal(http.ListenAndServe(":8080", mux))
+}
+
+func waitForDescriptors(hostPort string) (caller server.Caller, list []*desc.FileDescriptor) {
+	ctx := context.Background()
+	for {
+		caller, descs, _, err := server.NewReflectCaller([]string{"localhost:9090"})
+		if err != nil {
+			mlog.Warnw(ctx, "NewReflectCaller", "wait", "5 sec", "err", err)
+			// better pass timeout to newreflectcaller
+			// TODO config
+			time.Sleep(5 * time.Second)
+		} else {
+			mlog.Debugw(ctx, "NewReflectCaller", "caller", caller, "desc", descs)
+			for _, each := range descs {
+				mlog.Debugw(ctx, "descriptor", "name", each.GetName(), "pkg", each.GetPackage())
+			}
+			return caller, descs
+		}
+	}
 }
 
 func rejectPackage(descs []*desc.FileDescriptor, pkg string) (list []*desc.FileDescriptor) {
