@@ -11,6 +11,8 @@ type ConfigServiceImpl struct {
 	apiconfig.UnimplementedConfigServiceServer
 }
 
+func NewConfigServiceImpl() *ConfigServiceImpl { return new(ConfigServiceImpl) }
+
 func (s *ConfigServiceImpl) GetConfig(context.Context, *emptypb.Empty) (*apiconfig.GetConfigResponse, error) {
 	cfg := &apiconfig.Configuration{
 		Entries: make(map[string]*apiconfig.Configuration_Entry),

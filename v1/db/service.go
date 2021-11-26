@@ -3,8 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 
+	"github.com/emicklei/xconnect"
 	"github.com/google/uuid"
 	"github.com/jackc/pgtype"
 	"github.com/jackc/pgx/v4"
@@ -19,7 +21,15 @@ type DatabaseServiceImpl struct {
 	openTransactions map[string]pgx.Tx
 }
 
-func NewDatabaseServiceImpl(conn *pgx.Conn) *DatabaseServiceImpl {
+func NewDatabaseServiceImpl(config xconnect.Document) *DatabaseServiceImpl {
+	// TODO: temp, check config
+	dsn := config.FindString("postgres_connect")
+	conn, err := pgx.Connect(context.Background(), dsn)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1) //TODO
+	}
+	mlog.Infow(context.Background(), "connected to database", "dsn", dsn)
 	return &DatabaseServiceImpl{
 		Connection:       conn,
 		protect:          new(sync.RWMutex),

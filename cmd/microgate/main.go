@@ -1,44 +1,30 @@
 package main
 
 import (
-	"context"
-	"io/ioutil"
-
-	"github.com/blendle/zapdriver"
-	"github.com/emicklei/xconnect"
 	"github.com/microgate-io/microgate"
 	apilog "github.com/microgate-io/microgate-lib-go/v1/log"
+	"github.com/microgate-io/microgate/v1/config"
+	mconfig "github.com/microgate-io/microgate/v1/config"
+	mdb "github.com/microgate-io/microgate/v1/db"
 	mlog "github.com/microgate-io/microgate/v1/log"
-	"go.uber.org/zap/zapcore"
-	"gopkg.in/yaml.v2"
+	mqueue "github.com/microgate-io/microgate/v1/queue"
 )
 
 func main() {
-	// logger, _ := zap.NewProduction()
-	cfg := zapdriver.NewDevelopmentConfig()
-	cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	cfg.Encoding = "console"
-	logger, _ := cfg.Build()
-	defer logger.Sync()
-	mlog.InitLogger(logger)
+	mlog.Init()
 
-	config := loadConfig()
-	apilog.GlobalDebug = config.FindBool("global_debug")
+	gateConfig := config.Load("config.yaml")
+	apilog.GlobalDebug = gateConfig.FindBool("global_debug")
 
-	go microgate.StartInternalProxyServer(config)
-	microgate.StartExternalProxyServer(config)
-}
-
-func loadConfig() xconnect.Document {
-	ctx := context.Background()
-	content, err := ioutil.ReadFile("config.yaml")
-	if err != nil {
-		mlog.Fatalw(ctx, "failed to read config", "err", err)
+	// these are the gRPC services provided to the backend
+	provider := microgate.ServiceProvider{
+		Log:      mlog.NewLogService(),
+		Config:   mconfig.NewConfigServiceImpl(),
+		Database: mdb.NewDatabaseServiceImpl(gateConfig),
+		Queueing: mqueue.NewQueueingServiceImpl(gateConfig),
 	}
-	var doc xconnect.Document
-	err = yaml.Unmarshal(content, &doc)
-	if err != nil {
-		mlog.Fatalw(ctx, "failed to unmarshal config", "err", err)
-	}
-	return doc
+
+	go microgate.StartInternalProxyServer(gateConfig, provider)
+
+	microgate.StartExternalProxyServer(gateConfig)
 }
