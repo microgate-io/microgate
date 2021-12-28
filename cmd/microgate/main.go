@@ -24,6 +24,8 @@ func main() {
 		Queueing: mqueue.NewQueueingServiceImpl(gateConfig),
 	}
 
+	go microgate.StartExternalProxyHTTPServer(gateConfig)
+
 	go microgate.StartInternalProxyServer(gateConfig, provider)
 
 	microgate.StartExternalProxyServer(gateConfig)
