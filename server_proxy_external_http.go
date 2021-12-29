@@ -3,20 +3,23 @@ package microgate
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/emicklei/xconnect"
-	"github.com/microgate-io/microgate-lib-go/v1/httpjson"
+	"github.com/jhump/protoreflect/grpcreflect"
 	mlog "github.com/microgate-io/microgate/v1/log"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 )
 
 // StartExternalProxyHTTPServer listens to HTTP requests send from a HTTP client.
 func StartExternalProxyHTTPServer(config xconnect.Document) {
 	ctx := context.Background()
-	mlog.Debugw(ctx, "StartExternalProxyHTTPServer")
+	load()
+
+	mlog.Infow(ctx, "StartExternalProxyHTTPServer")
 
 	s := &http.Server{
 		Addr:           fmt.Sprintf(":%d", 8080),
@@ -33,36 +36,27 @@ func StartExternalProxyHTTPServer(config xconnect.Document) {
 type HTTPHandler struct{}
 
 func (h HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	pbr := new(httpjson.HandleRequest)
-	pbr.Method = r.Method
-	pbr.Path = r.URL.Path
-	headers := map[string]string{}
-	for k, v := range r.Header {
-		if len(v) == 1 {
-			headers[k] = v[0]
+
+}
+
+func load() {
+	conn, err := grpc.Dial("localhost:9090", grpc.WithInsecure())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer conn.Close()
+	c := grpcreflect.NewClient(context.Background(), grpc_reflection_v1alpha.NewServerReflectionClient(conn))
+	s, err := c.ListServices()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, each := range s {
+		log.Println(each)
+		desc, _ := c.ResolveService(each)
+		for _, other := range desc.GetMethods() {
+			log.Println(other.GetName())
 		}
-	}
-	pbr.Headers = headers
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		mlog.Warnw(r.Context(), "cannot read payload", "err", err)
-		return
-	}
-	r.Body.Close()
-	pbr.Body = data
-	// TEMP
-	content, err := protojson.Marshal(pbr)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		mlog.Errorw(r.Context(), "cannot write payload", "err", err)
-		return
-	}
-	w.Header().Set("content-type", "application/json")
-	_, err = w.Write(content)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		mlog.Errorw(r.Context(), "cannot write payload", "err", err)
-		return
 	}
 }

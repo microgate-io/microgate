@@ -32,17 +32,19 @@ type backendDirector struct {
 
 func newDirector(c *connector.CachingConnector, config xconnect.Document) *backendDirector {
 	hmp := map[string]bool{}
-	commaSeparatedStringOfMaskedHeaders := config.FindString("masked_headers")
+	commaSeparatedStringOfMaskedHeaders, _ := config.FindString("masked_headers")
 	for _, each := range strings.Split(commaSeparatedStringOfMaskedHeaders, ",") {
 		hmp[strings.TrimSpace(each)] = true
 	}
 	var checker APIChecker = AllowAll{}
+	verbose, _ := config.FindBool("verbose")
+	accesslog, _ := config.FindBool("accesslog_enabled")
 	return &backendDirector{
 		connector:           c,
 		accessMaskHeaderMap: hmp,
 		apichecker:          checker,
-		verbose:             config.FindBool("verbose"),
-		accessLogEnabled:    config.FindBool("accesslog_enabled"),
+		verbose:             verbose,
+		accessLogEnabled:    accesslog,
 		registry:            NewServicRegistry(config),
 	}
 }
