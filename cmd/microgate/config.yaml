@@ -18,7 +18,7 @@ xconnect:
         port: 9090
         
     # outbound grpc services
-    UserService:
+    user.v1.UserService:
       host: localhost
       port: 8000
       protocol: grpc

@@ -8,9 +8,12 @@ import (
 	"time"
 
 	"github.com/emicklei/xconnect"
+	"github.com/jhump/protoreflect/dynamic"
+	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 	mlog "github.com/microgate-io/microgate/v1/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 )
 
@@ -41,14 +44,9 @@ func (h HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // TEMP
 func load() {
-	var conn *grpc.ClientConn
-	var err error
-	for conn == nil {
-		conn, err = grpc.Dial("localhost:9090", grpc.WithInsecure())
-		if err != nil {
-			mlog.Infow(context.Background(), "waiting for connection to :9090", "err", err)
-			time.Sleep(5 * time.Second)
-		}
+	conn, err := grpc.Dial("localhost:9090", grpc.WithInsecure())
+	if err != nil {
+		mlog.Infow(context.Background(), "unable to dail :9090", "err", err)
 	}
 	defer conn.Close()
 
@@ -56,13 +54,36 @@ func load() {
 	s, err := c.ListServices()
 	if err != nil {
 		log.Println(err)
+		time.Sleep(5 * time.Second)
+		load()
 		return
 	}
+	df := dynamic.NewMessageFactoryWithDefaults()
 	for _, each := range s {
 		desc, _ := c.ResolveService(each)
 		for _, other := range desc.GetMethods() {
-			log.Println("service:", each, "method:", other.GetName(), "input:", other.GetInputType().GetName(), "output:", other.GetOutputType().GetName())
+			log.Println("full:", desc.GetFullyQualifiedName(), "service:", each, "method:", other.GetName(), "input:", other.GetInputType().GetName(), "output:", other.GetOutputType().GetName())
 
+			if other.GetInputType().GetName() == "CreateTodoRequest" {
+				dm := df.NewDynamicMessage(other.GetInputType())
+
+				data := []byte(`{"title":"test-title"}`)
+				if err := dm.UnmarshalJSON(data); err != nil {
+					log.Println(err)
+				} else {
+					log.Println(dm.String())
+				}
+
+				// call backend
+				c := grpcdynamic.NewStub(conn)
+				withKey := metadata.AppendToOutgoingContext(context.Background(), "x-api-key", "goldenkey", "x-cloud-debug", "DEBUG")
+				resp, err := c.InvokeRpc(withKey, other, dm)
+				if err != nil {
+					log.Println(err)
+				} else {
+					log.Println(resp)
+				}
+			}
 		}
 	}
 }
