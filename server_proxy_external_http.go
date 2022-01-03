@@ -39,13 +39,19 @@ func (h HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// TEMP
 func load() {
-	conn, err := grpc.Dial("localhost:9090", grpc.WithInsecure())
-	if err != nil {
-		log.Println(err)
-		return
+	var conn *grpc.ClientConn
+	var err error
+	for conn == nil {
+		conn, err = grpc.Dial("localhost:9090", grpc.WithInsecure())
+		if err != nil {
+			mlog.Infow(context.Background(), "waiting for connection to :9090", "err", err)
+			time.Sleep(5 * time.Second)
+		}
 	}
 	defer conn.Close()
+
 	c := grpcreflect.NewClient(context.Background(), grpc_reflection_v1alpha.NewServerReflectionClient(conn))
 	s, err := c.ListServices()
 	if err != nil {
@@ -53,10 +59,10 @@ func load() {
 		return
 	}
 	for _, each := range s {
-		log.Println(each)
 		desc, _ := c.ResolveService(each)
 		for _, other := range desc.GetMethods() {
-			log.Println(other.GetName())
+			log.Println("service:", each, "method:", other.GetName(), "input:", other.GetInputType().GetName(), "output:", other.GetOutputType().GetName())
+
 		}
 	}
 }

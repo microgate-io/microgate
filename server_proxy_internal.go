@@ -51,6 +51,6 @@ func StartInternalProxyServer(config xconnect.Document, provider ServiceProvider
 		apiqueue.RegisterQueueingServiceServer(grpcServer, provider.Queueing)
 	}
 
-	mlog.Infow(ctx, "external serving gRPC", "addr", ":9191")
+	mlog.Infow(ctx, "internal serving gRPC", "addr", ":9191")
 	grpcServer.Serve(lis)
 }
