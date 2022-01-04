@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/blendle/zapdriver v1.3.1
 	github.com/emicklei/xconnect v0.10.1
+	github.com/iancoleman/strcase v0.2.0 // indirect
 	github.com/jhump/protoreflect v1.8.2
 	github.com/microgate-io/microgate-lib-go v1.0.0
 	github.com/pkg/errors v0.9.1 // indirect

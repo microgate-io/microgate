@@ -31,7 +31,7 @@ type backendDirector struct {
 	registry            microgate.ServicRegistry
 }
 
-func newDirector(c *connector.CachingConnector, config xconnect.Document) *backendDirector {
+func newDirector(c *connector.CachingConnector, config xconnect.Document, reg microgate.ServicRegistry) *backendDirector {
 	hmp := map[string]bool{}
 	commaSeparatedStringOfMaskedHeaders, _ := config.FindString("masked_headers")
 	for _, each := range strings.Split(commaSeparatedStringOfMaskedHeaders, ",") {
@@ -46,7 +46,7 @@ func newDirector(c *connector.CachingConnector, config xconnect.Document) *backe
 		apichecker:          checker,
 		verbose:             verbose,
 		accessLogEnabled:    accesslog,
-		registry:            microgate.NewServicRegistry(config),
+		registry:            reg,
 	}
 }
 
@@ -59,7 +59,7 @@ func (d *backendDirector) Connect(ctx context.Context, fullMethodName string) (c
 	}
 
 	// find endpoint and fallback to backend
-	endpoint, err := d.registry.Lookup(fullMethodName)
+	endpoint, err := d.registry.LookupEndpoint(fullMethodName)
 	if err != nil {
 		//mlog.Errorw(ctx, "failed to resolve service", "fullMethodName", fullMethodName, "err", err)
 		//return ctx, nil, fmt.Errorf("failed to resolve service:%v", err)

@@ -19,11 +19,18 @@ func TestServicRegistry_Lookup(t *testing.T) {
 		},
 	}
 	r := NewServicRegistry(c)
-	e, err := r.Lookup("/TestService/Doit")
+	e, err := r.LookupEndpoint("/TestService/Doit")
 	if err != nil {
 		t.Fail()
 	}
 	if e.HostPort != "local:1234" {
 		t.Fail()
+	}
+}
+
+func TestHTTPPath(t *testing.T) {
+	p := toHTTPPath("todo.v1.TodoService", "CreateTodo")
+	if got, want := p, "todo/v1/todo-service/create-todo"; got != want {
+		t.Errorf("got [%v:%T] want [%v:%T]", got, got, want, want)
 	}
 }

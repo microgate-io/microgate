@@ -1,10 +1,15 @@
 package microgate
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/emicklei/xconnect"
+	"github.com/iancoleman/strcase"
+	"github.com/jhump/protoreflect/desc"
+	mlog "github.com/microgate-io/microgate/v1/log"
 )
 
 type Endpoint struct {
@@ -31,12 +36,14 @@ func NewEndpoint(e xconnect.ConnectEntry) Endpoint {
 }
 
 type ServicRegistry struct {
-	endpoints map[string]Endpoint
+	endpoints         map[string]Endpoint
+	methodDescriptors map[string]*desc.MethodDescriptor
 }
 
 func NewServicRegistry(config xconnect.Document) ServicRegistry {
 	sr := ServicRegistry{
-		endpoints: map[string]Endpoint{},
+		endpoints:         map[string]Endpoint{},
+		methodDescriptors: map[string]*desc.MethodDescriptor{},
 	}
 	for k, v := range config.XConnect.Connect {
 		sr.endpoints[k] = NewEndpoint(v)
@@ -44,9 +51,9 @@ func NewServicRegistry(config xconnect.Document) ServicRegistry {
 	return sr
 }
 
-// Lookup returns the Endpoint for sending request to the service operation.
+// LookupEndpoint returns the Endpoint for sending request to the service operation.
 // Example: /UserService/CheckUser
-func (r ServicRegistry) Lookup(fullMethodName string) (Endpoint, error) {
+func (r ServicRegistry) LookupEndpoint(fullMethodName string) (Endpoint, error) {
 	s := strings.Split(fullMethodName, "/")
 	if len(s) < 2 {
 		return Endpoint{}, fmt.Errorf("failed to parse service:%s", fullMethodName)
@@ -56,4 +63,44 @@ func (r ServicRegistry) Lookup(fullMethodName string) (Endpoint, error) {
 		return Endpoint{}, fmt.Errorf("unknown service:%s", s[1])
 	}
 	return e, nil
+}
+
+func (r ServicRegistry) LookupService(path string) {}
+
+func (r ServicRegistry) AddService(d *desc.ServiceDescriptor) {
+	ctx := context.Background()
+	if !canExposeAsHTTP(d.GetFullyQualifiedName()) {
+		mlog.Debugw(ctx, "reject service as HTTP", "name", d.GetFullyQualifiedName())
+		return
+	}
+	for _, each := range d.GetMethods() {
+		path := toHTTPPath(d.GetFullyQualifiedName(), each.GetName())
+		mlog.Debugw(ctx, "rpc", "path", path, "method:", each.GetName(), "input:", each.GetInputType().GetName(), "output:", each.GetOutputType().GetName())
+		r.methodDescriptors[path] = each
+	}
+}
+
+func toHTTPPath(service, method string) string {
+	sb := new(strings.Builder)
+	sp := strings.Split(service, ".")
+	for _, each := range sp {
+		if strings.HasPrefix(each, "v") { // do not transform version
+			io.WriteString(sb, each)
+		} else {
+			io.WriteString(sb, strcase.ToKebab(each))
+		}
+		io.WriteString(sb, "/")
+	}
+	io.WriteString(sb, strcase.ToKebab(method))
+	return sb.String()
+}
+
+func canExposeAsHTTP(service string) bool {
+	if strings.HasPrefix(service, "grpc") {
+		return false
+	}
+	if strings.HasPrefix(service, "microgate") {
+		return false
+	}
+	return true
 }

@@ -17,7 +17,8 @@ import (
 )
 
 // StartInternalProxyServer listens to gRPC requests send from the backend.
-func StartInternalProxyServer(config xconnect.Document, provider microgate.ServiceProvider) {
+
+func StartInternalProxyServer(config xconnect.Document, provider microgate.ServiceProvider, reg microgate.ServicRegistry) {
 	ctx := context.Background()
 	lis, err := net.Listen("tcp", ":9191")
 	if err != nil {
@@ -32,7 +33,7 @@ func StartInternalProxyServer(config xconnect.Document, provider microgate.Servi
 	pool := newConnectionPool()
 
 	// Create gRPC server with interceptors
-	director := newDirector(pool, config)
+	director := newDirector(pool, config, reg)
 	grpcServer := grpc.NewServer(
 		// special codec which allows the proxy to handle raw byte frames and pass them along without any serialization.
 		grpc.CustomCodec(proxy.Codec()),

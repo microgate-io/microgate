@@ -24,7 +24,8 @@ func main() {
 		Queueing: mqueue.NewQueueingServiceImpl(gateConfig),
 	}
 
-	go iogrpc.StartInternalProxyServer(gateConfig, provider)
-	go inhttp.StartExternalProxyHTTPServer(gateConfig)
-	iogrpc.StartExternalProxyServer(gateConfig)
+	reg := microgate.NewServicRegistry(gateConfig)
+	go iogrpc.StartInternalProxyServer(gateConfig, provider, reg)
+	go inhttp.StartExternalProxyHTTPServer(gateConfig, reg)
+	iogrpc.StartExternalProxyServer(gateConfig, reg)
 }
