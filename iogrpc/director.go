@@ -1,4 +1,4 @@
-package microgate
+package iogrpc
 
 // Author: E.Micklei
 
@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/xconnect"
+	"github.com/microgate-io/microgate"
 	mlog "github.com/microgate-io/microgate/v1/log"
 	"github.com/vgough/grpc-proxy/connector"
 	"google.golang.org/grpc"
@@ -23,11 +24,11 @@ var (
 // for access logs it knows how to mask certain header values.
 type backendDirector struct {
 	connector           *connector.CachingConnector // use grpc.Pool?
-	apichecker          APIChecker
+	apichecker          microgate.APIChecker
 	accessMaskHeaderMap map[string]bool
 	verbose             bool
 	accessLogEnabled    bool
-	registry            ServicRegistry
+	registry            microgate.ServicRegistry
 }
 
 func newDirector(c *connector.CachingConnector, config xconnect.Document) *backendDirector {
@@ -36,7 +37,7 @@ func newDirector(c *connector.CachingConnector, config xconnect.Document) *backe
 	for _, each := range strings.Split(commaSeparatedStringOfMaskedHeaders, ",") {
 		hmp[strings.TrimSpace(each)] = true
 	}
-	var checker APIChecker = AllowAll{}
+	var checker microgate.APIChecker = microgate.AllowAll{}
 	verbose, _ := config.FindBool("verbose")
 	accesslog, _ := config.FindBool("accesslog_enabled")
 	return &backendDirector{
@@ -45,7 +46,7 @@ func newDirector(c *connector.CachingConnector, config xconnect.Document) *backe
 		apichecker:          checker,
 		verbose:             verbose,
 		accessLogEnabled:    accesslog,
-		registry:            NewServicRegistry(config),
+		registry:            microgate.NewServicRegistry(config),
 	}
 }
 
@@ -60,11 +61,11 @@ func (d *backendDirector) Connect(ctx context.Context, fullMethodName string) (c
 	// find endpoint and fallback to backend
 	endpoint, err := d.registry.Lookup(fullMethodName)
 	if err != nil {
-		//mlog.Errorw("failed to resolve service", "fullMethodName", fullMethodName, "err", err)
+		//mlog.Errorw(ctx, "failed to resolve service", "fullMethodName", fullMethodName, "err", err)
 		//return ctx, nil, fmt.Errorf("failed to resolve service:%v", err)
 
 		// fallback to backend so we do not have to register all backend services too
-		endpoint = Endpoint{HostPort: "localhost:9090", Secure: false}
+		endpoint = microgate.Endpoint{HostPort: "localhost:9090", Secure: false}
 		if keys := md[apikeykey]; len(keys) > 0 {
 			endpoint.ApiKey = keys[0]
 		}
@@ -129,7 +130,7 @@ var addressKey struct{}
 
 func (d *backendDirector) Release(ctx context.Context, conn *grpc.ClientConn) {
 	// fetch the actual endpoint used to create the connection
-	e := ctx.Value(addressKey).(Endpoint)
+	e := ctx.Value(addressKey).(microgate.Endpoint)
 	d.connector.Release(e.HostPort, conn)
 }
 

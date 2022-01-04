@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/microgate-io/microgate"
 	apilog "github.com/microgate-io/microgate-lib-go/v1/log"
+	"github.com/microgate-io/microgate/inhttp"
+	"github.com/microgate-io/microgate/iogrpc"
 	"github.com/microgate-io/microgate/v1/config"
 	mconfig "github.com/microgate-io/microgate/v1/config"
 	mlog "github.com/microgate-io/microgate/v1/log"
@@ -22,7 +24,7 @@ func main() {
 		Queueing: mqueue.NewQueueingServiceImpl(gateConfig),
 	}
 
-	go microgate.StartInternalProxyServer(gateConfig, provider)
-	go microgate.StartExternalProxyHTTPServer(gateConfig)
-	microgate.StartExternalProxyServer(gateConfig)
+	go iogrpc.StartInternalProxyServer(gateConfig, provider)
+	go inhttp.StartExternalProxyHTTPServer(gateConfig)
+	iogrpc.StartExternalProxyServer(gateConfig)
 }

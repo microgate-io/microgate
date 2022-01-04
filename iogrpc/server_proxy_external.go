@@ -1,4 +1,4 @@
-package microgate
+package iogrpc
 
 import (
 	"context"

@@ -48,7 +48,7 @@ func NewServicRegistry(config xconnect.Document) ServicRegistry {
 // Example: /UserService/CheckUser
 func (r ServicRegistry) Lookup(fullMethodName string) (Endpoint, error) {
 	s := strings.Split(fullMethodName, "/")
-	if len(s) == 0 {
+	if len(s) < 2 {
 		return Endpoint{}, fmt.Errorf("failed to parse service:%s", fullMethodName)
 	}
 	e, ok := r.endpoints[s[1]]

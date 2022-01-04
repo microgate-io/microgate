@@ -1,4 +1,4 @@
-package microgate
+package inhttp
 
 import (
 	"testing"

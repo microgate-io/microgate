@@ -1,10 +1,11 @@
-package microgate
+package iogrpc
 
 import (
 	"context"
 	"net"
 
 	"github.com/emicklei/xconnect"
+	"github.com/microgate-io/microgate"
 	apiconfig "github.com/microgate-io/microgate-lib-go/v1/config"
 	apidb "github.com/microgate-io/microgate-lib-go/v1/db"
 	apilog "github.com/microgate-io/microgate-lib-go/v1/log"
@@ -16,7 +17,7 @@ import (
 )
 
 // StartInternalProxyServer listens to gRPC requests send from the backend.
-func StartInternalProxyServer(config xconnect.Document, provider ServiceProvider) {
+func StartInternalProxyServer(config xconnect.Document, provider microgate.ServiceProvider) {
 	ctx := context.Background()
 	lis, err := net.Listen("tcp", ":9191")
 	if err != nil {
