@@ -65,7 +65,10 @@ func (r ServicRegistry) LookupEndpoint(fullMethodName string) (Endpoint, error) 
 	return e, nil
 }
 
-func (r ServicRegistry) LookupService(path string) {}
+func (r ServicRegistry) LookupMethod(path string) (*desc.MethodDescriptor, bool) {
+	md, ok := r.methodDescriptors[path]
+	return md, ok
+}
 
 func (r ServicRegistry) AddService(d *desc.ServiceDescriptor) {
 	ctx := context.Background()
@@ -80,8 +83,10 @@ func (r ServicRegistry) AddService(d *desc.ServiceDescriptor) {
 	}
 }
 
+// "todo.v1.TodoService", "CreateTodo" -> "/todo/v1/todo-service/create-todo"
 func toHTTPPath(service, method string) string {
 	sb := new(strings.Builder)
+	io.WriteString(sb, "/")
 	sp := strings.Split(service, ".")
 	for _, each := range sp {
 		if strings.HasPrefix(each, "v") { // do not transform version

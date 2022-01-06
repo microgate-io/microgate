@@ -3,15 +3,18 @@ package inhttp
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/emicklei/xconnect"
 	"github.com/jhump/protoreflect/dynamic"
+	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"github.com/microgate-io/microgate"
 	mlog "github.com/microgate-io/microgate/v1/log"
+	grpcpool "github.com/processout/grpc-go-pool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 )
@@ -19,10 +22,18 @@ import (
 // StartExternalProxyHTTPServer listens to HTTP requests send from a HTTP client.
 func StartExternalProxyHTTPServer(config xconnect.Document, reg microgate.ServicRegistry) {
 	ctx := context.Background()
-
+	fact := func() (*grpc.ClientConn, error) {
+		return grpc.Dial("localhost:9090", grpc.WithInsecure())
+	}
+	grpcPool, err := grpcpool.New(fact, 1, 4, 5*time.Second, 10*time.Second)
+	if err != nil {
+		mlog.Errorw(ctx, "unable to create grpc pool", "err", err)
+		return
+	}
 	handler := &HTTPHandler{
 		messageFactory: dynamic.NewMessageFactoryWithDefaults(),
 		registry:       reg,
+		pool:           grpcPool,
 	}
 	handler.loadServiceRegistry()
 
@@ -43,10 +54,11 @@ func StartExternalProxyHTTPServer(config xconnect.Document, reg microgate.Servic
 type HTTPHandler struct {
 	messageFactory *dynamic.MessageFactory
 	registry       microgate.ServicRegistry
+	pool           *grpcpool.Pool
 }
 
 func (h *HTTPHandler) loadServiceRegistry() {
-	conn, err := grpc.Dial("localhost:9090", grpc.WithInsecure())
+	conn, err := h.pool.Get(context.Background())
 	if err != nil {
 		mlog.Infow(context.Background(), "unable to dail :9090", "err", err)
 	}
@@ -73,40 +85,61 @@ func (h *HTTPHandler) loadServiceRegistry() {
 }
 
 func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-}
-
-/**
-func load(reg microgate.ServicRegistry) {
-
-	df := dynamic.NewMessageFactoryWithDefaults()
-	for _, each := range s {
-		desc, _ := c.ResolveService(each)
-		reg.AddService(desc)
-		for _, other := range desc.GetMethods() {
-			log.Println("full:", desc.GetFullyQualifiedName(), "service:", each, "method:", other.GetName(), "input:", other.GetInputType().GetName(), "output:", other.GetOutputType().GetName())
-
-			if other.GetInputType().GetName() == "CreateTodoRequest" {
-				dm := df.NewDynamicMessage(other.GetInputType())
-
-				data := []byte(`{"title":"test-title"}`)
-				if err := dm.UnmarshalJSON(data); err != nil {
-					log.Println(err)
-				} else {
-					log.Println(dm.String())
-				}
-
-				// call backend
-				c := grpcdynamic.NewStub(conn)
-				withKey := metadata.AppendToOutgoingContext(context.Background(), "x-api-key", "goldenkey", "x-cloud-debug", "DEBUG")
-				resp, err := c.InvokeRpc(withKey, other, dm)
-				if err != nil {
-					log.Println(err)
-				} else {
-					log.Println(resp)
-				}
-			}
-		}
+	if ct := r.Header.Get("content-type"); ct != "application/json" {
+		w.WriteHeader(http.StatusNotAcceptable)
+		mlog.Debugw(r.Context(), "not JSON content", "content-type", ct)
+		return
 	}
+	// consume payload
+	payload, err := ioutil.ReadAll(r.Body)
+	r.Body.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		mlog.Errorw(r.Context(), "unable to read payload", "err", err)
+		return
+	}
+	// find service for path
+	md, ok := h.registry.LookupMethod(r.URL.Path)
+	if !ok {
+		w.WriteHeader(http.StatusNotFound)
+		mlog.Debugw(r.Context(), "method not found", "path", r.URL.Path)
+		return
+	}
+	// get connection
+	conn, err := h.pool.Get(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		mlog.Errorw(r.Context(), "unable to dial backend", "err", err)
+		return
+	}
+	defer conn.Close()
+	// build proto request
+	request := h.messageFactory.NewDynamicMessage(md.GetInputType())
+	if err := request.UnmarshalJSON(payload); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		mlog.Errorw(r.Context(), "unable to unmarshal payload",
+			"err", err, "payload", string(payload),
+			"inputtype", md.GetInputType().GetName(),
+			"rpc", md.GetFullyQualifiedName())
+		return
+	}
+	// call function
+	client := grpcdynamic.NewStub(conn)
+	resp, err := client.InvokeRpc(r.Context(), md, request)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		mlog.Errorw(r.Context(), "unable to dial backend", "err", err)
+		return
+	}
+	// create response payload
+	dresp := resp.(*dynamic.Message)
+	data, err := dresp.MarshalJSON()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		mlog.Errorw(r.Context(), "unable to write response", "err", err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("content-type", "application/json")
+	w.Write(data)
 }
-**/

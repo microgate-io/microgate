@@ -5,10 +5,11 @@ go 1.16
 require (
 	github.com/blendle/zapdriver v1.3.1
 	github.com/emicklei/xconnect v0.10.1
-	github.com/iancoleman/strcase v0.2.0 // indirect
-	github.com/jhump/protoreflect v1.8.2
+	github.com/iancoleman/strcase v0.2.0
+	github.com/jhump/protoreflect v1.10.1
 	github.com/microgate-io/microgate-lib-go v1.0.0
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/processout/grpc-go-pool v1.2.1 // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/vgough/grpc-proxy v0.0.0-20210913231538-71832b651269
 	go.opencensus.io v0.23.0

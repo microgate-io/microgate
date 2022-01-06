@@ -1,4 +1,4 @@
-package iogrpc
+package microgate
 
 // Author: E.Micklei
 
@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func newConnectionPool() *connector.CachingConnector {
+func NewConnectionPool() *connector.CachingConnector {
 	pool := connector.NewCachingConnector(connector.WithDialer(dialInsecure))
 	go func() {
 		for {

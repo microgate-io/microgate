@@ -25,7 +25,7 @@ func StartExternalProxyServer(config xconnect.Document, reg microgate.ServicRegi
 	statsHandler = grpc.StatsHandler(new(ocgrpc.ServerHandler))
 
 	// reusable gRPC connections
-	pool := newConnectionPool()
+	pool := microgate.NewConnectionPool()
 
 	// Create gRPC server with interceptors
 	director := newDirector(pool, config, reg)
