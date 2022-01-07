@@ -15,6 +15,6 @@ See https://github.com/microgate-io/microgate-demo/tree/main/todo/server
 
 This design and implementation was created to address the complexity when creating microservices in a polygot development organisation with increasing demands on standardization of non-functional requirements such as logging, metrics, resilience, error handling, etc.
 
-Compare to the [Dapr initiative](https://dapr.io/), this implementation is gRPC based and requires a per-cloud provider implementation to keep it simple.
+Compared to the [Dapr initiative](https://dapr.io/), this implementation is gRPC based and requires a per-cloud provider implementation to keep it simple.
 
-2021. MIT License ernestmicklei.com
+&copy; 2022. MIT License. ernestmicklei.com

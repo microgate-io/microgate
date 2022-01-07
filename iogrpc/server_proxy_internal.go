@@ -7,7 +7,6 @@ import (
 	"github.com/emicklei/xconnect"
 	"github.com/microgate-io/microgate"
 	apiconfig "github.com/microgate-io/microgate-lib-go/v1/config"
-	apidb "github.com/microgate-io/microgate-lib-go/v1/db"
 	apilog "github.com/microgate-io/microgate-lib-go/v1/log"
 	apiqueue "github.com/microgate-io/microgate-lib-go/v1/queue"
 	mlog "github.com/microgate-io/microgate/v1/log"
@@ -45,9 +44,6 @@ func StartInternalProxyServer(config xconnect.Document, provider microgate.Servi
 	}
 	if provider.Config != nil {
 		apiconfig.RegisterConfigServiceServer(grpcServer, provider.Config)
-	}
-	if provider.Database != nil {
-		apidb.RegisterDatabaseServiceServer(grpcServer, provider.Database)
 	}
 	if provider.Queueing != nil {
 		apiqueue.RegisterQueueingServiceServer(grpcServer, provider.Queueing)

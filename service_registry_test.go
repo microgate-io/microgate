@@ -30,7 +30,7 @@ func TestServicRegistry_Lookup(t *testing.T) {
 
 func TestHTTPPath(t *testing.T) {
 	p := toHTTPPath("todo.v1.TodoService", "CreateTodo")
-	if got, want := p, "todo/v1/todo-service/create-todo"; got != want {
+	if got, want := p, "/todo/v1/todo-service/create-todo"; got != want {
 		t.Errorf("got [%v:%T] want [%v:%T]", got, got, want, want)
 	}
 }
