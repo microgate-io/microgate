@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/emicklei/xconnect"
-	"github.com/microgate-io/microgate"
+	"github.com/microgate-io/microgate/internal/common"
 	"github.com/vgough/grpc-proxy/connector"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -20,7 +20,7 @@ func Test_backendDirector_Connect(t *testing.T) {
 	cfg.ExtraFields["verbose"] = true
 	cfg.ExtraFields["accesslog_enabled"] = true
 	cc := connector.NewCachingConnector(connector.WithDialer(testDialer))
-	dir := newDirector(cc, cfg, microgate.NewServicRegistry(cfg))
+	dir := newDirector(cc, cfg, common.NewServicRegistry(cfg))
 	bg := context.Background()
 	md := metadata.MD{}
 	md.Set("mask-1", "MASK-1")

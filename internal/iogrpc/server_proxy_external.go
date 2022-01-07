@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/emicklei/xconnect"
-	"github.com/microgate-io/microgate"
+	"github.com/microgate-io/microgate/internal/common"
 	mlog "github.com/microgate-io/microgate/v1/log"
 	"github.com/vgough/grpc-proxy/proxy"
 	"go.opencensus.io/plugin/ocgrpc"
@@ -13,7 +13,7 @@ import (
 )
 
 // StartExternalProxyServer listens to gRPC requests send from a gRPC client.
-func StartExternalProxyServer(config xconnect.Document, reg microgate.ServicRegistry) {
+func StartExternalProxyServer(config xconnect.Document, reg common.ServicRegistry) {
 	ctx := context.Background()
 	lis, err := net.Listen("tcp", ":9292")
 	if err != nil {
@@ -25,7 +25,7 @@ func StartExternalProxyServer(config xconnect.Document, reg microgate.ServicRegi
 	statsHandler = grpc.StatsHandler(new(ocgrpc.ServerHandler))
 
 	// reusable gRPC connections
-	pool := microgate.NewConnectionPool()
+	pool := common.NewConnectionPool()
 
 	// Create gRPC server with interceptors
 	director := newDirector(pool, config, reg)

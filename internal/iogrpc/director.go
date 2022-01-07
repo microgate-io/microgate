@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/xconnect"
-	"github.com/microgate-io/microgate"
+	"github.com/microgate-io/microgate/internal/common"
 	mlog "github.com/microgate-io/microgate/v1/log"
 	"github.com/vgough/grpc-proxy/connector"
 	"google.golang.org/grpc"
@@ -24,20 +24,20 @@ var (
 // for access logs it knows how to mask certain header values.
 type backendDirector struct {
 	connector           *connector.CachingConnector // use grpc.Pool?
-	apichecker          microgate.APIChecker
+	apichecker          common.APIChecker
 	accessMaskHeaderMap map[string]bool
 	verbose             bool
 	accessLogEnabled    bool
-	registry            microgate.ServicRegistry
+	registry            common.ServicRegistry
 }
 
-func newDirector(c *connector.CachingConnector, config xconnect.Document, reg microgate.ServicRegistry) *backendDirector {
+func newDirector(c *connector.CachingConnector, config xconnect.Document, reg common.ServicRegistry) *backendDirector {
 	hmp := map[string]bool{}
 	commaSeparatedStringOfMaskedHeaders, _ := config.FindString("masked_headers")
 	for _, each := range strings.Split(commaSeparatedStringOfMaskedHeaders, ",") {
 		hmp[strings.TrimSpace(each)] = true
 	}
-	var checker microgate.APIChecker = microgate.AllowAll{}
+	var checker common.APIChecker = common.AllowAll{}
 	verbose, _ := config.FindBool("verbose")
 	accesslog, _ := config.FindBool("accesslog_enabled")
 	return &backendDirector{
@@ -65,7 +65,7 @@ func (d *backendDirector) Connect(ctx context.Context, fullMethodName string) (c
 		//return ctx, nil, fmt.Errorf("failed to resolve service:%v", err)
 
 		// fallback to backend so we do not have to register all backend services too
-		endpoint = microgate.Endpoint{HostPort: "localhost:9090", Secure: false}
+		endpoint = common.Endpoint{HostPort: "localhost:9090", Secure: false}
 		if keys := md[apikeykey]; len(keys) > 0 {
 			endpoint.ApiKey = keys[0]
 		}
@@ -130,7 +130,7 @@ var addressKey struct{}
 
 func (d *backendDirector) Release(ctx context.Context, conn *grpc.ClientConn) {
 	// fetch the actual endpoint used to create the connection
-	e := ctx.Value(addressKey).(microgate.Endpoint)
+	e := ctx.Value(addressKey).(common.Endpoint)
 	d.connector.Release(e.HostPort, conn)
 }
 

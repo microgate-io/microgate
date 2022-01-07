@@ -12,7 +12,7 @@ import (
 	"github.com/jhump/protoreflect/dynamic"
 	"github.com/jhump/protoreflect/dynamic/grpcdynamic"
 	"github.com/jhump/protoreflect/grpcreflect"
-	"github.com/microgate-io/microgate"
+	"github.com/microgate-io/microgate/internal/common"
 	mlog "github.com/microgate-io/microgate/v1/log"
 	grpcpool "github.com/processout/grpc-go-pool"
 	"google.golang.org/grpc"
@@ -20,7 +20,7 @@ import (
 )
 
 // StartExternalProxyHTTPServer listens to HTTP requests send from a HTTP client.
-func StartExternalProxyHTTPServer(config xconnect.Document, reg microgate.ServicRegistry) {
+func StartExternalProxyHTTPServer(config xconnect.Document, reg common.ServicRegistry) {
 	ctx := context.Background()
 	fact := func() (*grpc.ClientConn, error) {
 		return grpc.Dial("localhost:9090", grpc.WithInsecure())
@@ -53,7 +53,7 @@ func StartExternalProxyHTTPServer(config xconnect.Document, reg microgate.Servic
 
 type HTTPHandler struct {
 	messageFactory *dynamic.MessageFactory
-	registry       microgate.ServicRegistry
+	registry       common.ServicRegistry
 	pool           *grpcpool.Pool
 }
 

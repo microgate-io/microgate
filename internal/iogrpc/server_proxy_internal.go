@@ -5,19 +5,25 @@ import (
 	"net"
 
 	"github.com/emicklei/xconnect"
-	"github.com/microgate-io/microgate"
 	apiconfig "github.com/microgate-io/microgate-lib-go/v1/config"
 	apilog "github.com/microgate-io/microgate-lib-go/v1/log"
 	apiqueue "github.com/microgate-io/microgate-lib-go/v1/queue"
+	"github.com/microgate-io/microgate/internal/common"
 	mlog "github.com/microgate-io/microgate/v1/log"
 	"github.com/vgough/grpc-proxy/proxy"
 	"go.opencensus.io/plugin/ocgrpc"
 	"google.golang.org/grpc"
 )
 
+type ProviderImplementations struct {
+	Log      apilog.LogServiceServer
+	Config   apiconfig.ConfigServiceServer
+	Queueing apiqueue.QueueingServiceServer
+}
+
 // StartInternalProxyServer listens to gRPC requests send from the backend.
 
-func StartInternalProxyServer(config xconnect.Document, provider microgate.ServiceProvider, reg microgate.ServicRegistry) {
+func StartInternalProxyServer(config xconnect.Document, provider ProviderImplementations, reg common.ServicRegistry) {
 	ctx := context.Background()
 	lis, err := net.Listen("tcp", ":9191")
 	if err != nil {
@@ -29,7 +35,7 @@ func StartInternalProxyServer(config xconnect.Document, provider microgate.Servi
 	statsHandler = grpc.StatsHandler(new(ocgrpc.ServerHandler))
 
 	// reusable gRPC connections
-	pool := microgate.NewConnectionPool()
+	pool := common.NewConnectionPool()
 
 	// Create gRPC server with interceptors
 	director := newDirector(pool, config, reg)

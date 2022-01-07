@@ -1,4 +1,4 @@
-package microgate
+package common
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package microgate
+package common
 
 type APIChecker interface {
 	Check(operation string, apikey string) (bool, string, error)
